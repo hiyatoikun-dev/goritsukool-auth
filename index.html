@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Threads連携</title>
+</head>
+<body>
+<script>
+  // GASのURLにコードを転送する中継ページ
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJWEiU0TJd7ITQ-CSYFIug-KbO7UuKbRxc0-ORJnwYDsVarA90hVvvqFT6qAu38Xmp/exec';
+
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const error = params.get('error');
+  const state = params.get('state');
+
+  if (error) {
+    document.body.innerHTML = '<p style="color:red;font-family:sans-serif;text-align:center;padding:40px">認証がキャンセルされました。ウィンドウを閉じてやり直してください。</p>';
+  } else if (code) {
+    // GASにリダイレクト
+    const redirect = GAS_URL + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state || '');
+    window.location.href = redirect;
+  } else {
+    document.body.innerHTML = '<p style="color:gray;font-family:sans-serif;text-align:center;padding:40px">処理中...</p>';
+  }
+</script>
+</body>
+</html>
+
