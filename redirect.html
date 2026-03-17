@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script>
+  var url = new URLSearchParams(window.location.search).get('url');
+  if (url && url.indexOf('https://') === 0) {
+    window.location.replace(url);
+  } else {
+    document.write('URLが不正です');
+  }
+</script>
+</head>
+<body></body>
+</html>
+
