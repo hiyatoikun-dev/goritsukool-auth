@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ゴリツクール 認証</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --accent: #00e5a0;
+      --text: #e8e8e8;
+      --muted: #888;
+      --border: #2a2a2a;
+      --font-mono: 'DM Mono', monospace;
+      --font-body: 'Noto Sans JP', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .card {
+      max-width: 520px;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2.5rem;
+      text-align: center;
+    }
+    .logo {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+      margin-bottom: 1.5rem;
+    }
+    .icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 2rem;
+    }
+    .code-box {
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      text-align: left;
+      margin-bottom: 1.5rem;
+    }
+    .code-label {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    #codeDisplay {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--accent);
+      word-break: break-all;
+      line-height: 1.6;
+    }
+    .copy-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      padding: 0.8em;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 1rem;
+    }
+    .copy-btn:hover { background: rgba(0,229,160,0.1); }
+    .copy-btn.copied { background: rgba(0,229,160,0.15); }
+    .note {
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .no-code {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .step {
+      background: #111;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      text-align: left;
+      margin-top: 1.5rem;
+    }
+    .step-title {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+    .step-body {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">GORITSUKOOL</div>
+    <div class="icon" id="statusIcon">🔑</div>
+    <h1 id="statusTitle">Threads認証</h1>
+    <p class="desc" id="statusDesc">URLからコードを取得しています...</p>
+
+    <div id="codeSection" style="display:none;">
+      <div class="code-box">
+        <div class="code-label">認証コード</div>
+        <div id="codeDisplay"></div>
+      </div>
+      <button class="copy-btn" id="copyBtn" onclick="copyCode()">コードをコピー</button>
+      <div class="step">
+        <div class="step-title">次のステップ</div>
+        <div class="step-body">
+          上のコードをコピーして、スプレッドシートの<br>
+          「予約投稿」メニュー →「Threads API連携」を開き、<br>
+          STEP 2 の入力欄に貼り付けてください。
+        </div>
+      </div>
+    </div>
+
+    <div id="noCodeSection" style="display:none;">
+      <div class="note">
+        このページはゴリツクールのThreads認証用コールバックページです。<br><br>
+        スプレッドシートの「予約投稿」メニューから「Threads API連携」を開き、<br>
+        「Threadsで認証する」ボタンを押すと認証が始まります。
+      </div>
+    </div>
+
+    <div id="errorSection" style="display:none;">
+      <p style="color:#f87171;font-size:0.85rem;margin-bottom:1rem;" id="errorMsg"></p>
+      <div class="note">認証をやり直してください。</div>
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const error = params.get('error');
+    const state = params.get('state');
+
+    if (error) {
+      document.getElementById('statusIcon').textContent = '❌';
+      document.getElementById('statusTitle').textContent = '認証エラー';
+      document.getElementById('statusDesc').textContent = 'Threadsの認証中にエラーが発生しました。';
+      document.getElementById('errorMsg').textContent = 'エラー: ' + error;
+      document.getElementById('errorSection').style.display = 'block';
+      document.getElementById('statusDesc').style.display = 'none';
+    } else if (code) {
+      document.getElementById('statusIcon').textContent = '✅';
+      document.getElementById('statusTitle').textContent = '認証コードを取得しました';
+      document.getElementById('statusDesc').textContent = '以下のコードをスプレッドシートに貼り付けてください。';
+      document.getElementById('codeDisplay').textContent = code;
+      document.getElementById('codeSection').style.display = 'block';
+    } else {
+      document.getElementById('statusIcon').textContent = 'ℹ️';
+      document.getElementById('statusTitle').textContent = 'ゴリツクール 認証ページ';
+      document.getElementById('statusDesc').style.display = 'none';
+      document.getElementById('noCodeSection').style.display = 'block';
+    }
+
+    function copyCode() {
+      const code = document.getElementById('codeDisplay').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'コピーしました！';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'コードをコピー';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
