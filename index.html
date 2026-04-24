@@ -7,17 +7,14 @@
 </head>
 <body>
 <script>
-  // GASのURLにコードを転送する中継ページ
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzvEBZ15vWqvKVaN0Hs1XFszViaGxqM6BZ-pS-TGcZtk7ia1Q1OSE_3bfy4_2qEDY52/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxuTrJD2sIFmy8jFzwkwRc3FMisOiGjN_ekvhzQXX8WvXPeLwZ_Kj95IJqA9RZwIWoE/exec';
   const params = new URLSearchParams(window.location.search);
   const code  = params.get('code');
   const error = params.get('error');
   const state = params.get('state');
-
   if (error) {
     document.body.innerHTML = '<p style="color:red;font-family:sans-serif;text-align:center;padding:40px">認証がキャンセルされました。ウィンドウを閉じてやり直してください。</p>';
   } else if (code) {
-    // GASにリダイレクト
     const redirect = GAS_URL + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state || '');
     window.location.href = redirect;
   } else {
@@ -26,4 +23,3 @@
 </script>
 </body>
 </html>
-
