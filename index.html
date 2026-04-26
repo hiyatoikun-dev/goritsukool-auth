@@ -5,20 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Threads連携</title>
 </head>
-<body>
+<body style="font-family:sans-serif;background:#0a0a0a;color:#f0f0f0;padding:40px;text-align:center">
 <script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzWwPwTG5KP8sH1pGj9AI9sfyQe38gYoCCJRpBVsfv9YWK7GhB0R1FKnlUfYeZgQaSR/exec';
-  const params = new URLSearchParams(window.location.search);
-  const code  = params.get('code');
-  const error = params.get('error');
-  const state = params.get('state');
+  const params  = new URLSearchParams(window.location.search);
+  const code    = params.get('code');
+  const error   = params.get('error');
+  const state   = params.get('state') || '';
+
   if (error) {
-    document.body.innerHTML = '<p style="color:red;font-family:sans-serif;text-align:center;padding:40px">認証がキャンセルされました。ウィンドウを閉じてやり直してください。</p>';
-  } else if (code) {
-    const redirect = GAS_URL + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state || '');
-    window.location.href = redirect;
+    document.body.innerHTML = '<p style="color:#f87171">認証がキャンセルされました。ウィンドウを閉じてやり直してください。</p>';
+  } else if (code && state) {
+    const parts   = decodeURIComponent(state).split('|');
+    const stateId = parts[0];
+    const gasUrl  = parts[1];
+    if (gasUrl && gasUrl.startsWith('https://script.google.com/')) {
+      document.body.innerHTML = '<p style="color:#aaa">処理中...</p>';
+      window.location.href = gasUrl + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(stateId);
+    } else {
+      document.body.innerHTML = '<p style="color:#f87171">エラー：転送先URLが不正です。</p>';
+    }
   } else {
-    document.body.innerHTML = '<p style="color:gray;font-family:sans-serif;text-align:center;padding:40px">処理中...</p>';
+    document.body.innerHTML = '<p style="color:#aaa">処理中...</p>';
   }
 </script>
 </body>
