@@ -1,48 +1,18 @@
 {
-  "_comment": "ゴリ受付AI Phase2 - 2案併記",
-  "_plan_A": "Claude API使用（保留中・Anthropic課金発生）",
-  "_plan_B": "Make関数のみ（無料・外部API不要・精度は限定的）",
+  "_plan": "Plan B確定 - Make関数のみ（外部API不要）",
+  "_note": "1.text はMake画面上の実フィールド名に差し替えること",
 
-  "plan_A_http_module": {
-    "name": "HTTP - Claude AI解析",
-    "url": "https://api.anthropic.com/v1/messages",
-    "method": "POST",
-    "parse_response": "Yes（必須）",
-    "headers": {
-      "x-api-key": "Anthropic APIキー",
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json"
-    },
-    "body_raw_json": {
-      "model": "claude-haiku-4-5-20251001",
-      "max_tokens": 512,
-      "messages": [
-        {
-          "role": "user",
-          "content": "以下のメッセージから6項目を抽出して、必ずJSONのみ返してください。\n\n【ルール】\n- 処理区分: 入金 / 出金 / 振替 / 請求 / その他 のいずれか1つ\n- 金額: 半角数字のみ（単位・カンマなし。不明なら空文字）\n- 予定日: YYYY-MM-DD形式（不明なら空文字）\n- タスク期限: YYYY-MM-DD形式（不明なら空文字）\n- 状態: 未処理 / 処理中 / 完了 のいずれか1つ（通常は未処理）\n- 処理メモ: 補足情報を簡潔に（なければ空文字）\n\n【入力メッセージ】\n{{1.text}}\n\n【出力形式（このJSONのみ返す）】\n{\"処理区分\":\"\",\"金額\":\"\",\"予定日\":\"\",\"タスク期限\":\"\",\"状態\":\"\",\"処理メモ\":\"\"}"
-        }
-      ]
-    }
+  "sheets_column_mapping": {
+    "C_処理区分":  "{{if(contains(1.text; \"入金\"); \"入金\"; if(contains(1.text; \"出金\"); \"出金\"; if(contains(1.text; \"振替\"); \"振替\"; if(contains(1.text; \"請求\"); \"請求\"; \"その他\"))))}}",
+    "D_金額":      "{{ifempty(replace(toString(first(match(1.text; \"[0-9,]+\"))); \",\"; \"\"); \"\")}}",
+    "E_予定日":    "{{ifempty(first(match(1.text; \"[0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}\")); \"\")}}",
+    "F_タスク期限":"{{ifempty(first(match(1.text; \"[0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}\")); \"\")}}",
+    "G_状態":      "未処理",
+    "H_処理メモ":  "{{ifempty(left(1.text; 100); \"\")}}"
   },
 
-  "plan_A_sheets_mapping": {
-    "_note": "HTTPモジュールの番号が2の場合。Parse response=Yes前提。日本語キーはget()で参照",
-    "C_処理区分":  "{{get(parseJSON(2.body.content[1].text); \"処理区分\")}}",
-    "D_金額":      "{{get(parseJSON(2.body.content[1].text); \"金額\")}}",
-    "E_予定日":    "{{get(parseJSON(2.body.content[1].text); \"予定日\")}}",
-    "F_タスク期限":"{{get(parseJSON(2.body.content[1].text); \"タスク期限\")}}",
-    "G_状態":      "{{get(parseJSON(2.body.content[1].text); \"状態\")}}",
-    "H_処理メモ":  "{{get(parseJSON(2.body.content[1].text); \"処理メモ\")}}"
-  },
-
-  "plan_B_make_functions_only": {
-    "_note": "外部AI API不要。キーワードマッチングのため精度は限定的。入力は {{1.text}} 想定",
-    "_limitation": "予定日・タスク期限は文脈で区別できないため、日付パターンが1つの場合は両列に同じ値が入る",
-    "C_処理区分": "{{if(contains(1.text; \"入金\"); \"入金\"; if(contains(1.text; \"出金\"); \"出金\"; if(contains(1.text; \"振替\"); \"振替\"; if(contains(1.text; \"請求\"); \"請求\"; \"その他\"))))}}",
-    "D_金額":     "{{replace(toString(first(match(1.text; \"[0-9,]+\"))); \",\"; \"\")}}",
-    "E_予定日":   "{{first(match(1.text; \"[0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}\"))}}",
-    "F_タスク期限":"{{first(match(1.text; \"[0-9]{4}[-/][0-9]{1,2}[-/][0-9]{1,2}\"))}}",
-    "G_状態":     "未処理",
-    "H_処理メモ": "{{left(1.text; 100)}}"
+  "limitations": {
+    "予定日とタスク期限": "文脈区別不可のため同じ日付が入る",
+    "金額": "文中の最初の数字列を取得。別数字が先にある場合は誤取得の可能性あり"
   }
 }
