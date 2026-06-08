@@ -1,0 +1,53 @@
+{
+  "_comment": "ゴリ受付AI Phase2 - MakeシナリオへHTTPモジュール追加用設定",
+  "_usage": "既存シナリオのWebhookモジュールとGoogle Sheetsモジュールの間に挿入",
+
+  "module_http_claude": {
+    "name": "HTTP - Claude AI解析",
+    "type": "http:ActionSendData",
+    "url": "https://api.anthropic.com/v1/messages",
+    "method": "POST",
+    "headers": [
+      { "name": "x-api-key",          "value": "{{anthropic_api_key}}" },
+      { "name": "anthropic-version",  "value": "2023-06-01" },
+      { "name": "content-type",       "value": "application/json" }
+    ],
+    "body_type": "raw",
+    "body": {
+      "model": "claude-haiku-4-5-20251001",
+      "max_tokens": 512,
+      "messages": [
+        {
+          "role": "user",
+          "content": "以下のメッセージから6項目を抽出して、必ずJSONのみ返してください。\n\n【ルール】\n- 処理区分: 入金 / 出金 / 振替 / 請求 / その他 のいずれか1つ\n- 金額: 半角数字のみ（単位・カンマなし。不明なら空文字）\n- 予定日: YYYY-MM-DD形式（不明なら空文字）\n- タスク期限: YYYY-MM-DD形式（不明なら空文字）\n- 状態: 未処理 / 処理中 / 完了 のいずれか1つ（通常は未処理）\n- 処理メモ: 補足情報を簡潔に（なければ空文字）\n\n【入力メッセージ】\n{{1.text}}\n\n【出力形式（このJSONのみ返す）】\n{\"処理区分\":\"\",\"金額\":\"\",\"予定日\":\"\",\"タスク期限\":\"\",\"状態\":\"\",\"処理メモ\":\"\"}"
+        }
+      ]
+    },
+    "parse_response": true
+  },
+
+  "module_sheets_update": {
+    "name": "Google Sheets - AI_Inbox C〜H列更新",
+    "type": "google-sheets:addRow",
+    "_note": "既存のAdd a Rowモジュールに追加するか、C〜H列マッピングを以下の値で設定",
+    "column_mapping": {
+      "C (処理区分)": "{{parseJson(body.content[].text).処理区分}}",
+      "D (金額)":     "{{parseJson(body.content[].text).金額}}",
+      "E (予定日)":   "{{parseJson(body.content[].text).予定日}}",
+      "F (タスク期限)":"{{parseJson(body.content[].text).タスク期限}}",
+      "G (状態)":     "{{parseJson(body.content[].text).状態}}",
+      "H (処理メモ)": "{{parseJson(body.content[].text).処理メモ}}"
+    }
+  },
+
+  "parse_shortcut": {
+    "_note": "Make組み込みのparseJSON関数を使う場合の短縮マッピング",
+    "set_variable_after_http": "ai_result = parseJSON({{HTTPモジュール番号.body.content[].text}})",
+    "C": "{{ai_result.処理区分}}",
+    "D": "{{ai_result.金額}}",
+    "E": "{{ai_result.予定日}}",
+    "F": "{{ai_result.タスク期限}}",
+    "G": "{{ai_result.状態}}",
+    "H": "{{ai_result.処理メモ}}"
+  }
+}
