@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "name": "ゴリ受付AI Phase2 - Google Sheets Add a Row 設定仕様",
+    "version": "2.0",
+    "date": "2026-06-08",
+    "scenario": "ゴリ受付AIシナリオ",
+    "module": "Google Sheets > Add a Row > AI_Inbox",
+    "variable_note": "TEXTプレースホルダーは実際のLINEメッセージテキスト変数に置き換えること（例: 1.body.events[].message.text）",
+    "existing_columns": "A列・B列は既存マッピングを維持 - 変更しない"
+  },
+  "columns": {
+    "A": {
+      "label": "日時",
+      "action": "既存マッピングを維持 - 変更しない",
+      "formula": null
+    },
+    "B": {
+      "label": "内容",
+      "action": "既存マッピングを維持 - 変更しない",
+      "formula": null
+    },
+    "C": {
+      "label": "処理区分",
+      "action": "新規追加",
+      "priority_order": ["オークション系", "収支", "予定", "タスク", "その他"],
+      "formula": "{{if(contains(TEXT; \"ヤフオク\") or contains(TEXT; \"落札\") or contains(TEXT; \"メルカリ\") or contains(TEXT; \"フリマ\") or contains(TEXT; \"出品\"); \"オークション系\"; if(contains(TEXT; \"売上\") or contains(TEXT; \"収入\") or contains(TEXT; \"支出\") or contains(TEXT; \"入金\") or contains(TEXT; \"円\"); \"収支\"; if(contains(TEXT; \"予定\") or contains(TEXT; \"集荷\") or contains(TEXT; \"時に\") or contains(TEXT; \"時から\"); \"予定\"; if(contains(TEXT; \"まで\") or contains(TEXT; \"買う\") or contains(TEXT; \"やる\") or contains(TEXT; \"締切\") or contains(TEXT; \"期限\"); \"タスク\"; \"その他\"))))}}",
+      "keywords": {
+        "オークション系": ["ヤフオク", "落札", "メルカリ", "フリマ", "出品"],
+        "収支": ["売上", "収入", "支出", "入金", "円"],
+        "予定": ["予定", "集荷", "時に", "時から"],
+        "タスク": ["まで", "買う", "やる", "締切", "期限"]
+      }
+    },
+    "D": {
+      "label": "金額",
+      "action": "新規追加",
+      "description": "数字+円のパターンを正規表現で抽出（例: 3000円, 1200円）",
+      "formula": "{{match(TEXT; /\\d+円/)}}"
+    },
+    "E": {
+      "label": "予定日",
+      "action": "新規追加",
+      "description": "今日・明日・明後日・〇〇時 をテキストから抽出して連結",
+      "formula": "{{trim(concat(if(contains(TEXT; \"今日\"); \"今日 \"; \"\"); if(contains(TEXT; \"明日\"); \"明日 \"; \"\"); if(contains(TEXT; \"明後日\"); \"明後日 \"; \"\"); if(match(TEXT; /\\d+時/); match(TEXT; /\\d+時/); \"\")))}}"
+    },
+    "F": {
+      "label": "タスク期限",
+      "action": "新規追加",
+      "description": "〇〇まで・締切・期限 の直前にある日付表現を抽出",
+      "formula": "{{if(contains(TEXT; \"まで\"); trim(replace(match(TEXT; /\\S+まで/); \"まで\"; \"\")); if(contains(TEXT; \"締切\") or contains(TEXT; \"期限\"); match(TEXT; /[今明][日後]/); \"\"))}}"
+    },
+    "G": {
+      "label": "状態",
+      "action": "新規追加（固定値）",
+      "description": "常に「未処理」を固定入力",
+      "formula": "未処理"
+    },
+    "H": {
+      "label": "ChatGPT処理メモ",
+      "action": "新規追加",
+      "description": "処理区分に応じた対応メモを自動生成",
+      "formula": "{{if(contains(TEXT; \"ヤフオク\") or contains(TEXT; \"落札\") or contains(TEXT; \"メルカリ\") or contains(TEXT; \"フリマ\") or contains(TEXT; \"出品\"); \"【オークション系】金額・発送状況を確認してください\"; if(contains(TEXT; \"売上\") or contains(TEXT; \"収入\") or contains(TEXT; \"支出\") or contains(TEXT; \"入金\") or contains(TEXT; \"円\"); \"【収支】金額を帳簿に記録してください\"; if(contains(TEXT; \"予定\") or contains(TEXT; \"集荷\") or contains(TEXT; \"時に\") or contains(TEXT; \"時から\"); \"【予定】カレンダーに追加してください\"; if(contains(TEXT; \"まで\") or contains(TEXT; \"買う\") or contains(TEXT; \"やる\") or contains(TEXT; \"締切\") or contains(TEXT; \"期限\"); \"【タスク】期限内に対応してください\"; \"【その他】内容を手動で確認してください\"))))}}"}
+  },
+  "test_cases": [
+    {
+      "input": "今日の売上3000円",
+      "expected": {
+        "C_処理区分": "収支",
+        "D_金額": "3000円",
+        "E_予定日": "今日",
+        "F_期限": "",
+        "G_状態": "未処理",
+        "H_メモ": "【収支】金額を帳簿に記録してください"
+      }
+    },
+    {
+      "input": "明日14時に集荷予定",
+      "expected": {
+        "C_処理区分": "予定",
+        "D_金額": "",
+        "E_予定日": "明日 14時",
+        "F_期限": "",
+        "G_状態": "未処理",
+        "H_メモ": "【予定】カレンダーに追加してください"
+      }
+    },
+    {
+      "input": "梱包材を買う 明日まで",
+      "expected": {
+        "C_処理区分": "タスク",
+        "D_金額": "",
+        "E_予定日": "明日",
+        "F_期限": "明日",
+        "G_状態": "未処理",
+        "H_メモ": "【タスク】期限内に対応してください"
+      }
+    },
+    {
+      "input": "ヤフオク落札された 1200円",
+      "expected": {
+        "C_処理区分": "オークション系",
+        "D_金額": "1200円",
+        "E_予定日": "",
+        "F_期限": "",
+        "G_状態": "未処理",
+        "H_メモ": "【オークション系】金額・発送状況を確認してください"
+      }
+    }
+  ],
+  "implementation_steps": [
+    "1. Makeのゴリ受付AIシナリオを開く",
+    "2. Google Sheets「Add a Row」モジュールをクリックして設定を開く",
+    "3. A列・B列は既存マッピングのまま一切変更しない",
+    "4. C列フィールドに「処理区分」フォーミュラを貼り付ける（TEXTをLINEメッセージテキスト変数に差し替え）",
+    "5. D列フィールドに「金額」フォーミュラを貼り付ける",
+    "6. E列フィールドに「予定日」フォーミュラを貼り付ける",
+    "7. F列フィールドに「タスク期限」フォーミュラを貼り付ける",
+    "8. G列フィールドに「未処理」（固定文字列）を入力する",
+    "9. H列フィールドに「処理メモ」フォーミュラを貼り付ける",
+    "10. OKで保存 → Run onceでテスト実行",
+    "11. LINEからテスト文4件を送信して期待結果を確認する"
+  ],
+  "variable_substitution": {
+    "placeholder": "TEXT",
+    "replace_with": "実際のLINEメッセージテキスト変数",
+    "example_paths": [
+      "1.body.events[].message.text",
+      "1.body.events[0].message.text"
+    ],
+    "how_to_find": "Makeの変数ピッカーでLINE WebhookモジュールのMessage > Text を選択すると自動挿入される"
+  }
+}
