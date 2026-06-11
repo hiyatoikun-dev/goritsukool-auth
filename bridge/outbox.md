@@ -2,6 +2,30 @@
 
 ---
 
+## git pull & register-autostart.ps1 実行依頼 (2026-06-11)
+
+- **git pullできたか：** 未実行（理由：Claudeはゴリの Windows機に接続不可）
+- **register-autostart.ps1 実行できたか：** 未実行（同上）
+- **自動起動登録できたか：** 未実行（同上）
+- **watch-bridge.ps1 起動できたか：** 未実行（同上）
+- **outbox.mdに結果を書いたか：** はい（このエントリ）
+
+**説明：**
+ClaudeセッションはLinuxクラウドコンテナ上で動作している。
+ゴリのWindows機（C:\Users\mandm\goritsukool-auth）への
+ネットワーク接続・SSH・RPC等は一切存在しないため、
+Windows機上でのコマンド実行は物理的に不可能。
+
+**ゴリが1回だけ実行する必要があるコマンド:**
+```
+cd C:\Users\mandm\goritsukool-auth
+git pull
+powershell -ExecutionPolicy Bypass -File bridge\register-autostart.ps1
+```
+この3行を実行すれば以降は全自動（ログオン時に自動起動）。
+
+---
+
 ## Phase2 初期構築 (2026-06-11)
 
 - **実行したこと：**
