@@ -7,8 +7,6 @@
 </head>
 <body style="font-family:sans-serif;background:#0a0a0a;color:#f0f0f0;padding:40px;text-align:center;">
 <script>
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxK76Se1wHOFCJkWVl6cPcA3BvtCbAoGUvcwXksqkksrvrBCpmRUNaYv-8o5xqCOkds/exec';
-
   const params = new URLSearchParams(window.location.search);
   const code  = params.get('code');
   const error = params.get('error');
@@ -17,9 +15,19 @@
   if (error) {
     document.body.innerHTML = '<p style="color:#f87171;">認証がキャンセルされました。ウィンドウを閉じてやり直してください。</p>';
   } else if (code && state) {
-    document.body.innerHTML = '<p style="color:#aaa;">処理中...</p>';
-    const redirect = GAS_URL + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state);
-    window.location.href = redirect;
+    // stateから gasUrl を取り出してリダイレクト
+    let gasUrl = '';
+    try {
+      const parts = decodeURIComponent(state).split('|');
+      gasUrl = parts[1] || '';
+    } catch(e) {}
+
+    if (gasUrl && gasUrl.indexOf('https://') === 0) {
+      document.body.innerHTML = '<p style="color:#aaa;">処理中...</p>';
+      window.location.href = gasUrl + '?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state);
+    } else {
+      document.body.innerHTML = '<p style="color:#f87171;">stateの解析に失敗しました。最初からやり直してください。</p>';
+    }
   } else {
     document.body.innerHTML = '<p style="color:#aaa;">パラメータが不足しています。最初からやり直してください。</p>';
   }
