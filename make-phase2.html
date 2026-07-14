@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ゴリ受付AI Phase2 - Make実装ガイド</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --card: #111;
+      --accent: #00e5a0;
+      --warn: #facc15;
+      --red: #f87171;
+      --text: #e8e8e8;
+      --muted: #888;
+      --border: #2a2a2a;
+      --font-mono: 'DM Mono', 'Courier New', monospace;
+      --font-body: 'Noto Sans JP', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      padding: 2rem 1rem;
+      line-height: 1.6;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 2.5rem; }
+    .logo { font-family: var(--font-mono); color: var(--accent); font-size: 0.75rem; letter-spacing: 0.15em; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .subtitle { color: var(--muted); font-size: 0.85rem; }
+    .warning {
+      background: rgba(250,204,21,0.08);
+      border: 1px solid rgba(250,204,21,0.3);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 2rem;
+      font-size: 0.82rem;
+      color: var(--warn);
+    }
+    .warning strong { display: block; margin-bottom: 0.3rem; }
+    .section { margin-bottom: 2rem; }
+    .section-title {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .col-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .col-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+    .col-badge {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      background: rgba(0,229,160,0.1);
+      border: 1px solid rgba(0,229,160,0.3);
+      color: var(--accent);
+      padding: 0.2em 0.6em;
+      border-radius: 3px;
+      min-width: 2.5rem;
+      text-align: center;
+    }
+    .col-badge.existing {
+      background: rgba(136,136,136,0.1);
+      border-color: rgba(136,136,136,0.3);
+      color: var(--muted);
+    }
+    .col-label { font-weight: 700; font-size: 0.9rem; }
+    .col-action {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: auto;
+      font-family: var(--font-mono);
+    }
+    .col-action.new { color: var(--accent); }
+    .col-desc { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.7rem; }
+    .formula-box {
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.8rem 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #7dd3fc;
+      word-break: break-all;
+      position: relative;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .formula-box:hover { border-color: var(--accent); }
+    .formula-box.fixed { color: var(--accent); font-size: 0.85rem; text-align: center; cursor: default; }
+    .copy-hint {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.6rem;
+      font-size: 0.6rem;
+      color: var(--muted);
+      font-family: var(--font-mono);
+    }
+    .copied-msg { color: var(--accent); }
+    .keywords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.7rem;
+    }
+    .kw {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      background: #1a1a1a;
+      border: 1px solid var(--border);
+      padding: 0.2em 0.5em;
+      border-radius: 3px;
+      color: var(--muted);
+    }
+    .kw-group { margin-top: 0.6rem; font-size: 0.72rem; color: var(--muted); }
+    .kw-group strong { color: var(--text); }
+    .test-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+    }
+    .test-table th {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: left;
+      padding: 0.5rem 0.6rem;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .test-table td {
+      padding: 0.6rem;
+      border-bottom: 1px solid #1a1a1a;
+      vertical-align: top;
+    }
+    .test-table tr:last-child td { border-bottom: none; }
+    .test-table .input-col { font-family: var(--font-mono); color: var(--warn); }
+    .test-table .val { font-family: var(--font-mono); color: var(--accent); }
+    .test-table .empty { color: var(--muted); font-style: italic; }
+    .steps-list { list-style: none; padding: 0; }
+    .steps-list li {
+      display: flex;
+      gap: 0.8rem;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 0.82rem;
+      align-items: flex-start;
+    }
+    .steps-list li:last-child { border-bottom: none; }
+    .step-num {
+      font-family: var(--font-mono);
+      color: var(--accent);
+      font-size: 0.7rem;
+      min-width: 1.5rem;
+      padding-top: 0.1rem;
+    }
+    .var-note {
+      background: rgba(0,229,160,0.05);
+      border: 1px solid rgba(0,229,160,0.2);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+    }
+    .var-note code {
+      font-family: var(--font-mono);
+      color: var(--accent);
+      background: #0a0a0a;
+      padding: 0.15em 0.4em;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">GORITSUKOOL</div>
+      <h1>ゴリ受付AI Phase2</h1>
+      <div class="subtitle">Make - Google Sheets「Add a Row」C〜H列 フォーミュラ実装ガイド</div>
+    </div>
+
+    <div class="warning">
+      <strong>⚠ 変更前確認</strong>
+      A列・B列は既存マッピングを一切変更しない。LINE受信・Google Sheets・HTTP返信の既存モジュール構成を維持する。
+    </div>
+
+    <div class="var-note">
+      <strong>変数について：</strong>
+      下記フォーミュラ内の <code>TEXT</code> は Make のLINE Webhookモジュールから流れるメッセージテキスト変数に置き換えること。<br>
+      変数ピッカーで LINE Webhook → <code>Message</code> → <code>Text</code> を選ぶと自動挿入される（例: <code>{{1.body.events[].message.text}}</code>）
+    </div>
+
+    <!-- Columns -->
+    <div class="section">
+      <div class="section-title">Google Sheets: Add a Row — 列マッピング</div>
+
+      <!-- A列 既存 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge existing">A</span>
+          <span class="col-label">日時</span>
+          <span class="col-action">既存 — 変更しない</span>
+        </div>
+      </div>
+
+      <!-- B列 既存 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge existing">B</span>
+          <span class="col-label">内容</span>
+          <span class="col-action">既存 — 変更しない</span>
+        </div>
+      </div>
+
+      <!-- C列 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge">C</span>
+          <span class="col-label">処理区分</span>
+          <span class="col-action new">新規追加</span>
+        </div>
+        <div class="col-desc">キーワードで優先順: オークション系 > 収支 > 予定 > タスク > その他</div>
+        <div class="formula-box" onclick="copyFormula(this)" data-formula='{{if(contains(TEXT; "ヤフオク") or contains(TEXT; "落札") or contains(TEXT; "メルカリ") or contains(TEXT; "フリマ") or contains(TEXT; "出品"); "オークション系"; if(contains(TEXT; "売上") or contains(TEXT; "収入") or contains(TEXT; "支出") or contains(TEXT; "入金") or contains(TEXT; "円"); "収支"; if(contains(TEXT; "予定") or contains(TEXT; "集荷") or contains(TEXT; "時に") or contains(TEXT; "時から"); "予定"; if(contains(TEXT; "まで") or contains(TEXT; "買う") or contains(TEXT; "やる") or contains(TEXT; "締切") or contains(TEXT; "期限"); "タスク"; "その他"))))}}'>
+          <span class="copy-hint">クリックでコピー</span>
+          {{if(contains(TEXT; "ヤフオク") or contains(TEXT; "落札") or contains(TEXT; "メルカリ") or contains(TEXT; "フリマ") or contains(TEXT; "出品"); "オークション系"; if(contains(TEXT; "売上") or contains(TEXT; "収入") or contains(TEXT; "支出") or contains(TEXT; "入金") or contains(TEXT; "円"); "収支"; if(contains(TEXT; "予定") or contains(TEXT; "集荷") or contains(TEXT; "時に") or contains(TEXT; "時から"); "予定"; if(contains(TEXT; "まで") or contains(TEXT; "買う") or contains(TEXT; "やる") or contains(TEXT; "締切") or contains(TEXT; "期限"); "タスク"; "その他"))))}}
+        </div>
+        <div class="kw-group"><strong>オークション系:</strong> ヤフオク / 落札 / メルカリ / フリマ / 出品</div>
+        <div class="kw-group"><strong>収支:</strong> 売上 / 収入 / 支出 / 入金 / 円</div>
+        <div class="kw-group"><strong>予定:</strong> 予定 / 集荷 / 時に / 時から</div>
+        <div class="kw-group"><strong>タスク:</strong> まで / 買う / やる / 締切 / 期限</div>
+      </div>
+
+      <!-- D列 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge">D</span>
+          <span class="col-label">金額</span>
+          <span class="col-action new">新規追加</span>
+        </div>
+        <div class="col-desc">「数字+円」を正規表現で抽出（例: 3000円, 1200円）</div>
+        <div class="formula-box" onclick="copyFormula(this)" data-formula='{{match(TEXT; /\d+円/)}}'>
+          <span class="copy-hint">クリックでコピー</span>
+          {{match(TEXT; /\d+円/)}}
+        </div>
+      </div>
+
+      <!-- E列 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge">E</span>
+          <span class="col-label">予定日</span>
+          <span class="col-action new">新規追加</span>
+        </div>
+        <div class="col-desc">今日・明日・明後日・〇〇時 を検出してスペース区切りで連結</div>
+        <div class="formula-box" onclick="copyFormula(this)" data-formula='{{trim(concat(if(contains(TEXT; "今日"); "今日 "; ""); if(contains(TEXT; "明日"); "明日 "; ""); if(contains(TEXT; "明後日"); "明後日 "; ""); if(match(TEXT; /\d+時/); match(TEXT; /\d+時/); "")))}}'>
+          <span class="copy-hint">クリックでコピー</span>
+          {{trim(concat(if(contains(TEXT; "今日"); "今日 "; ""); if(contains(TEXT; "明日"); "明日 "; ""); if(contains(TEXT; "明後日"); "明後日 "; ""); if(match(TEXT; /\d+時/); match(TEXT; /\d+時/); "")))}}
+        </div>
+      </div>
+
+      <!-- F列 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge">F</span>
+          <span class="col-label">タスク期限</span>
+          <span class="col-action new">新規追加</span>
+        </div>
+        <div class="col-desc">「〇〇まで」から期限日を抽出。締切・期限キーワードにも対応</div>
+        <div class="formula-box" onclick="copyFormula(this)" data-formula='{{if(contains(TEXT; "まで"); trim(replace(match(TEXT; /\S+まで/); "まで"; "")); if(contains(TEXT; "締切") or contains(TEXT; "期限"); match(TEXT; /[今明][日後]/); ""))}}'>
+          <span class="copy-hint">クリックでコピー</span>
+          {{if(contains(TEXT; "まで"); trim(replace(match(TEXT; /\S+まで/); "まで"; "")); if(contains(TEXT; "締切") or contains(TEXT; "期限"); match(TEXT; /[今明][日後]/); ""))}}
+        </div>
+      </div>
+
+      <!-- G列 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge">G</span>
+          <span class="col-label">状態</span>
+          <span class="col-action new">新規追加（固定値）</span>
+        </div>
+        <div class="col-desc">常に「未処理」を固定入力（フォーミュラ不要・テキスト直打ち）</div>
+        <div class="formula-box fixed" onclick="copyFormula(this)" data-formula="未処理">
+          <span class="copy-hint">クリックでコピー</span>
+          未処理
+        </div>
+      </div>
+
+      <!-- H列 -->
+      <div class="col-card">
+        <div class="col-header">
+          <span class="col-badge">H</span>
+          <span class="col-label">ChatGPT処理メモ</span>
+          <span class="col-action new">新規追加</span>
+        </div>
+        <div class="col-desc">処理区分に応じた対応メモを自動生成</div>
+        <div class="formula-box" onclick="copyFormula(this)" data-formula='{{if(contains(TEXT; "ヤフオク") or contains(TEXT; "落札") or contains(TEXT; "メルカリ") or contains(TEXT; "フリマ") or contains(TEXT; "出品"); "【オークション系】金額・発送状況を確認してください"; if(contains(TEXT; "売上") or contains(TEXT; "収入") or contains(TEXT; "支出") or contains(TEXT; "入金") or contains(TEXT; "円"); "【収支】金額を帳簿に記録してください"; if(contains(TEXT; "予定") or contains(TEXT; "集荷") or contains(TEXT; "時に") or contains(TEXT; "時から"); "【予定】カレンダーに追加してください"; if(contains(TEXT; "まで") or contains(TEXT; "買う") or contains(TEXT; "やる") or contains(TEXT; "締切") or contains(TEXT; "期限"); "【タスク】期限内に対応してください"; "【その他】内容を手動で確認してください"))))}}'>
+          <span class="copy-hint">クリックでコピー</span>
+          {{if(contains(TEXT; "ヤフオク") or contains(TEXT; "落札") or contains(TEXT; "メルカリ") or contains(TEXT; "フリマ") or contains(TEXT; "出品"); "【オークション系】金額・発送状況を確認してください"; if(contains(TEXT; "売上") or contains(TEXT; "収入") or contains(TEXT; "支出") or contains(TEXT; "入金") or contains(TEXT; "円"); "【収支】金額を帳簿に記録してください"; if(contains(TEXT; "予定") or contains(TEXT; "集荷") or contains(TEXT; "時に") or contains(TEXT; "時から"); "【予定】カレンダーに追加してください"; if(contains(TEXT; "まで") or contains(TEXT; "買う") or contains(TEXT; "やる") or contains(TEXT; "締切") or contains(TEXT; "期限"); "【タスク】期限内に対応してください"; "【その他】内容を手動で確認してください"))))}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Test Cases -->
+    <div class="section">
+      <div class="section-title">テストケース — 期待結果</div>
+      <div class="col-card" style="padding:0; overflow:hidden;">
+        <table class="test-table">
+          <thead>
+            <tr>
+              <th>LINE送信テキスト</th>
+              <th>C: 処理区分</th>
+              <th>D: 金額</th>
+              <th>E: 予定日</th>
+              <th>F: 期限</th>
+              <th>G: 状態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="input-col">今日の売上3000円</td>
+              <td class="val">収支</td>
+              <td class="val">3000円</td>
+              <td class="val">今日</td>
+              <td class="empty">(空)</td>
+              <td class="val">未処理</td>
+            </tr>
+            <tr>
+              <td class="input-col">明日14時に集荷予定</td>
+              <td class="val">予定</td>
+              <td class="empty">(空)</td>
+              <td class="val">明日 14時</td>
+              <td class="empty">(空)</td>
+              <td class="val">未処理</td>
+            </tr>
+            <tr>
+              <td class="input-col">梱包材を買う 明日まで</td>
+              <td class="val">タスク</td>
+              <td class="empty">(空)</td>
+              <td class="val">明日</td>
+              <td class="val">明日</td>
+              <td class="val">未処理</td>
+            </tr>
+            <tr>
+              <td class="input-col">ヤフオク落札された 1200円</td>
+              <td class="val">オークション系</td>
+              <td class="val">1200円</td>
+              <td class="empty">(空)</td>
+              <td class="empty">(空)</td>
+              <td class="val">未処理</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="section">
+      <div class="section-title">実装手順</div>
+      <ul class="steps-list">
+        <li><span class="step-num">1</span><span>Makeのゴリ受付AIシナリオを開く</span></li>
+        <li><span class="step-num">2</span><span>Google Sheets「Add a Row」モジュールをクリック → 設定を開く</span></li>
+        <li><span class="step-num">3</span><span>A列・B列の既存マッピングは一切変更しない</span></li>
+        <li><span class="step-num">4</span><span>上記フォーミュラをC〜H列にそれぞれ貼り付ける（<strong>TEXT</strong>をLINEメッセージ変数に差し替え）</span></li>
+        <li><span class="step-num">5</span><span>G列は「未処理」を固定テキストで直接入力（フォーミュラ不要）</span></li>
+        <li><span class="step-num">6</span><span>OKで保存 → <strong>Run once</strong> でテスト実行</span></li>
+        <li><span class="step-num">7</span><span>LINEからテスト文4件を送信して上記の期待結果と一致するか確認</span></li>
+        <li><span class="step-num">8</span><span>異常がなければシナリオをONに戻す</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    function copyFormula(el) {
+      const formula = el.getAttribute('data-formula');
+      navigator.clipboard.writeText(formula).then(() => {
+        const hint = el.querySelector('.copy-hint');
+        hint.textContent = 'コピーしました ✓';
+        hint.classList.add('copied-msg');
+        setTimeout(() => {
+          hint.textContent = 'クリックでコピー';
+          hint.classList.remove('copied-msg');
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
